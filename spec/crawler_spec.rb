@@ -1,6 +1,7 @@
 # encoding: utf-8
 require 'rspec'
 require '../edtv_crawler'
+require '../db/001_create_links'
 
 describe EdtvCrawler do
 	before do
@@ -45,6 +46,20 @@ describe EdtvCrawler do
 			end
 		end
 
+	end
+
+	describe "when call save_link method" do
+		before do
+			ActiveRecord::Base.establish_connection(
+				:adapter => 'sqlite3',
+				:database => ':memory:'
+			)
+			CreateLinks::up
+		end
+		it "should saved image link" do
+			@crawler.save_links
+			Link.find(:all).size.should have_at_least(1).items
+		end
 	end
 
 end

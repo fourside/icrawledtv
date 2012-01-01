@@ -1,6 +1,7 @@
-# encoding: utf-8
+# encoding : utf-8
 require 'rubygems'
 require 'mechanize'
+require File.dirname(__FILE__) + '/link'
 
 class EdtvCrawler
 	BASEURL = 'http://hayabusa2.2ch.net/test/read.cgi/liveetv/'
@@ -34,14 +35,28 @@ class EdtvCrawler
 		@agent.page.encoding = 'CP932'
 		list = []
 		@agent.page.search("//dd").each do |elem|
-			if elem.inner_text =~ /ttp.*(?:jpg|gif|png|jpeg)/
-				elem.inner_text.split(' ').each do |s|
-					url = s if s =~ /h?ttp:\/\/(www\.)?(?:10up|epcan|jlab|tv|uproda|rupan).*(?:jpg|gif|png|jpeg)/
-					url = 'h' + url unless url[0] == 'h'
-					list << url
+			if elem.inner_text.index('ttp')
+				elem.inner_text.split.each do |s|
+					next unless /^h?ttp:\/\/(?:www\.)?(?:iup|10up|epcan|jlab|tv|uproda|rupan|ruru2).*\.(?:jpg|gif|png|jpeg)$/ =~ s
+					s = 'h' + s unless s[0] == 'h'
+					list << s
 				end
 			end
 		end
 		list
 	end
+
+	def save_links
+		thread_urls.each do |url, title|
+			scrapelinks(url).each do |img|
+				link = Link.new
+				link.image_url, link.thread_url, link.title = img, url, title
+				begin
+					link.save
+				rescue
+				end
+			end
+		end
+	end
 end
+
