@@ -2,6 +2,7 @@
 require 'rubygems'
 require 'mechanize'
 require File.dirname(__FILE__) + '/link'
+require File.dirname(__FILE__) + '/tumblr_poster'
 
 class EdtvCrawler
 	BASEURL = 'http://hayabusa2.2ch.net/test/read.cgi/liveetv/'
@@ -16,16 +17,20 @@ class EdtvCrawler
 		@agent.page.encoding = 'CP932'
 	end
 
+	def main
+		save_links
+		#TumblrPoster.new.run
+	end
+
 # key: thread url
 # value : thread title
 	def thread_urls
 		links = {}
 		@agent.page.search("//small[@id='trad']/a").each do |elem|
-			if elem.inner_text =~ /NHK教育を見て/
-				url = BASEURL + elem['href'].gsub(/l50/, '')
-				title = elem.inner_text.gsub(/^\d+:/, '').gsub(/\(\d+\)/, '').strip
-				links[url] = title
-			end
+			#next unless elem.inner_text =~ /NHK教育を見て/
+			url = BASEURL + elem['href'].gsub(/l50/, '')
+			title = elem.inner_text.gsub(/^\d+:/, '').gsub(/\(\d+\)/, '').strip
+			links[url] = title
 		end
 		links
 	end
@@ -54,7 +59,7 @@ class EdtvCrawler
 				link.image_url, link.thread_url, link.title = img, url, title
 				begin
 					link.save
-				rescue
+				rescue # ignore exception
 				end
 			end
 		end
@@ -62,5 +67,5 @@ class EdtvCrawler
 end
 
 if __FILE__ == $0
-	EdtvCrawler.new.save_links
+	EdtvCrawler.new.main
 end
