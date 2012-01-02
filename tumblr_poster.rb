@@ -36,33 +36,30 @@ class TumblrPoster
 		puts access_token.secret
 	end
 
-	def main
-		links = Link.where(:is_posted => false)
-		list_params(links).each do |params|
-			res = post_images(params)
+	def run
+		init
+		Link.where(:is_posted => false).each do |link|
+			params = get_params(link)
+			res = post_image(params)
 			mark(params) if res['meta']['status'] == '201'
 		end
 		delete_a_week_ago
 	end
 
-	def list_params(links)
-		list = []
-		links.each do |link|
-			list << params = {
-				"type"    => "photo",
-				"state"   => "queue",
-				"caption" => link.title,
-				"source"  => link.image_url
-			}
-		end
-		list
+	def get_params(link)
+		params = {
+			"type"    => "photo",
+			"state"   => "queue",
+			"caption" => link.caption,
+			"source"  => link.image_url
+		}
 	end
 
-	def post_images(params)
+	def post_image(params)
 		base_hostname = 'icrawledtv.tumblr.com'
 		path = "/v2/blog/#{base_hostname}/post"
 		response = @access_token.post(path, params)
-		res = JSON.parse(response.body)
+		JSON.parse(response.body)
 	end
 
 # make is_posted true
@@ -80,5 +77,5 @@ end
 
 #TumblrPoster.new.get_tokens
 if __FILE__ == $0
-	TumblrPoster.new.main
+	TumblrPoster.new.run
 end

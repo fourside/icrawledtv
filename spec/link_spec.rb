@@ -5,7 +5,7 @@ require '../db/001_create_links'
 
 
 describe Link do
-	before do
+	before(:all) do
 		ActiveRecord::Base.establish_connection(
 			:adapter => 'sqlite3',
 			:database => ':memory:'
@@ -26,16 +26,22 @@ describe Link do
 	describe "when Link saves with the duplicated image url" do
 		before do
 			@link.save
-			@link = Link.new
-			@link.image_url = 'http://hoge/hoge.jpg'
-			@link.thread_url = 'http://piyo/'
-			@link.title = 'NHKを見て100000倍賢く'
+			@link1 = Link.new
+			@link1.image_url = @link.image_url
+			@link1.thread_url = 'http://piyo/'
+			@link1.title = 'NHKを見て100000倍賢く'
 		end
 
 		it "should fail" do
 			proc {
-				@link.save
+				@link1.save
 			}.should raise_error(ActiveRecord::StatementInvalid)
+		end
+	end
+
+	describe "when call caption method" do
+		it "should return anchor of html to link thread url" do
+			@link.caption.should == "<a href='#{@link.thread_url}'>#{@link.title}</a>"
 		end
 	end
 

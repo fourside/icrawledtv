@@ -9,4 +9,7 @@ ActiveRecord::Base.establish_connection(
 ActiveRecord::Base.logger = Logger.new(File.join(File.dirname(__FILE__), '/database.log'))
 
 class Link < ActiveRecord::Base
+	def caption
+		"<a href='#{self.thread_url}'>#{self.title}</a>"
+	end
 end
