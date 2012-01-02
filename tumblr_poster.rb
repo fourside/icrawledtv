@@ -6,7 +6,7 @@ require 'active_support'
 require File.dirname(__FILE__) + '/link'
 
 class TumblrPoster
-	def initialize
+	def init
 		tokens = YAML.load_file(File.dirname(__FILE__) + '/tokens.yaml')
 		@consumer = OAuth::Consumer.new(
 			tokens[:api][:apikey],
@@ -25,9 +25,10 @@ class TumblrPoster
 	end
 
 	def get_tokens
+		init
 		@consumer.site = 'http://www.tumblr.com'
 		request_token = @consumer.get_request_token
-		puts request_token.authorize_url # for access from browser and get verifier parameter
+		puts request_token.authorize_url # for access by browser and get verifier parameter
 		puts 'Input oauth verifier:' # paste!
 		verifier = Kernel.gets
 		verifier.chomp!
@@ -38,10 +39,10 @@ class TumblrPoster
 
 	def run
 		init
-		Link.where(:is_posted => false).each do |link|
+		Link.where(:is_posted => false).order(:created_at).each do |link|
 			params = get_params(link)
 			res = post_image(params)
-			mark(params) if res['meta']['status'] == '201'
+			mark(params) if res['meta']['status'] == 201
 		end
 		delete_a_week_ago
 	end

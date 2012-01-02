@@ -13,19 +13,17 @@ describe TumblrPoster do
 		@tumblr_poster = TumblrPoster.new
 		@link = Link.new do |l|
 			l.title = 'NHKを見てn倍賢く'
-			l.image_url = 'http://example.com'
+			l.image_url = 'http://example.com/image.jpg'
+			l.thread_url = 'http://example.com/'
 		end
-		@links = []
-		@links << @link
 	end
 
 	describe "when make params to post from links" do
 		before do
-			@params_list = @tumblr_poster.list_params(@links)
-			@params = @params_list.first
+			@params = @tumblr_poster.get_params(@link)
 		end
-		it "gets Array" do
-			@params_list.class.should be Array
+		it "gets Hash" do
+			@params.class.should be Hash
 		end
 		it "makes params, that has key :type" do
 			@params.should have_key('type')
@@ -46,33 +44,30 @@ describe TumblrPoster do
 			@params['state'].should == 'queue'
 		end
 		it "makes params, that has value of caption" do
-			@params['caption'].should == 'NHKを見てn倍賢く'
+			@params['caption'].should == "<a href='http://example.com/'>NHKを見てn倍賢く</a>"
 		end
 		it "makes params, that has value of source" do
-			@params['source'].should == 'http://example.com'
+			@params['source'].should == 'http://example.com/image.jpg'
 		end
 	end
 
 	describe "when posted image to Tumblr" do
 		before do
 			@link.save
-			@params_list = @tumblr_poster.list_params(@links)
-			@params = @params_list.first
-			@tumblr_poster.mark(@params)
+			@params = @tumblr_poster.get_params(@link)
 		end
 		it "should mark is_posted true" do
+			@tumblr_poster.mark(@params)
 			Link.where(:image_url => @params['source']).first.is_posted.should be true
 		end
 	end
 
 	describe "when 1 week passed" do
 		before do
-			@params_list = @tumblr_poster.list_params(@links)
-			@params = @params_list.first
+			@params = @tumblr_poster.get_params(@link)
 			@oldlink = Link.where(:image_url => @params['source']).first
 			@oldlink.created_at = @oldlink.created_at - 7.days - 1.hour
 			@oldlink.save
-			puts  Time.now
 		end
 		it "should delete records created at 1 week ago" do
 			@tumblr_poster.delete_a_week_ago
