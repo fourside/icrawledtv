@@ -19,7 +19,7 @@ class EdtvCrawler
 
 	def main
 		save_links
-		#TumblrPoster.new.run
+		TumblrPoster.new.run
 	end
 
 # key: thread url
