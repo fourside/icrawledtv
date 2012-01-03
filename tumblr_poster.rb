@@ -39,6 +39,8 @@ class TumblrPoster
 
 	def run
 		init
+		@log = Logger.new('./log.log')
+		@log.level = Logger::DEBUG
 		Link.where(:is_posted => false).order(:created_at).each do |link|
 			params = get_params(link)
 			res = post_image(params)
@@ -50,7 +52,7 @@ class TumblrPoster
 	def get_params(link)
 		params = {
 			"type"    => "photo",
-			"state"   => "queue",
+			"state"   => "published",
 			"caption" => link.caption,
 			"source"  => link.image_url
 		}
@@ -60,7 +62,9 @@ class TumblrPoster
 		base_hostname = 'icrawledtv.tumblr.com'
 		path = "/v2/blog/#{base_hostname}/post"
 		response = @access_token.post(path, params)
-		JSON.parse(response.body)
+		res = JSON.parse(response.body)
+		@log.debug(res)
+		res
 	end
 
 # make is_posted true
