@@ -23,6 +23,7 @@ ActiveRecord::Base.logger = Logger.new(File.dirname(__FILE__) + '/log/database.l
 
 class Link < ActiveRecord::Base
 	validates_uniqueness_of :image_url
+	validates_uniqueness_of :img_hash
 	def caption
 		"<a href='#{self.thread_url}'>#{self.title}</a>"
 	end

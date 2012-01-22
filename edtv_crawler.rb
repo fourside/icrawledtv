@@ -1,6 +1,8 @@
 # encoding : utf-8
 require 'rubygems'
 require 'mechanize'
+require 'open-uri'
+require 'digest/md5'
 require File.dirname(__FILE__) + '/link'
 require File.dirname(__FILE__) + '/tumblr_poster'
 
@@ -56,14 +58,22 @@ class EdtvCrawler
 	end
 
 	def save_links(subback)
-		thread_urls(subback['url']).each do |url, title|
-			scrapelinks(url).each do |img|
+		thread_urls(subback['url']).each do |thread_url, title|
+			scrapelinks(thread_url).each do |img_url|
 				link = Link.new
-				link.image_url, link.thread_url, link.title, link.tv = img, url, title, subback['tv']
+				link.image_url, link.thread_url, link.title, link.tv = img_url, thread_url, title, subback['tv']
+				link.img_hash = img_hash(img_url)
 				link.save
 			end
 		end
 	end
+
+	def img_hash(url)
+		open(url) do |data|
+			Digest::MD5.hexdigest data.read
+		end
+	end
+
 end
 
 if __FILE__ == $0
