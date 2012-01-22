@@ -62,9 +62,7 @@ class TumblrPoster
 		base_hostname = 'icrawledtv.tumblr.com'
 		path = "/v2/blog/#{base_hostname}/post"
 		response = @access_token.post(path, params)
-		res = JSON.parse(response.body)
-		@log.debug(res)
-		res
+		JSON.parse(response.body)
 	end
 
 # make is_posted true
