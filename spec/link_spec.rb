@@ -10,6 +10,7 @@ describe Link do
 			:adapter => 'sqlite3',
 			:database => ':memory:'
 		)
+		ActiveRecord::Base.logger = nil
 		CreateLinks::up
 		@link = Link.new
 		@link.image_url = 'http://hoge/hoge.jpg'
@@ -33,9 +34,7 @@ describe Link do
 		end
 
 		it "should fail" do
-			proc {
-				@link1.save
-			}.should raise_error(ActiveRecord::StatementInvalid)
+			@link1.save.should be false
 		end
 	end
 
