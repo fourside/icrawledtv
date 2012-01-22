@@ -5,31 +5,34 @@ require File.dirname(__FILE__) + '/link'
 require File.dirname(__FILE__) + '/tumblr_poster'
 
 class EdtvCrawler
-	BASEURL = 'http://hayabusa2.2ch.net/test/read.cgi/liveetv/'
-	SUBBACK = 'http://hayabusa2.2ch.net/liveetv/subback.html'
 
 	def initialize
 		@agent = Mechanize.new do |s|
 			s.user_agent_alias = 'Mac Safari'
-			s.max_history  = 2
+			s.max_history  = 1
 		end
-		@agent.get(SUBBACK)
-		@agent.page.encoding = 'CP932'
 	end
 
 	def main
-		save_links
-		TumblrPoster.new.run
+		subbacks.each do |subback|
+			save_links(subback)
+		end
+		puts "#{File.basename(__FILE__)} @#{Time.now}"
+	end
+
+	def subbacks
+		YAML.load_file(File.dirname(__FILE__) + '/subbacks.yaml')
 	end
 
 # key: thread url
 # value : thread title
-	def thread_urls
+	def thread_urls(subback_url)
 		links = {}
+		@agent.get(subback_url)
+		@agent.page.encoding = 'CP932'
 		@agent.page.search("//small[@id='trad']/a").each do |elem|
-			#next unless elem.inner_text =~ /NHK教育を見て/
-			url = BASEURL + elem['href'].gsub(/l50/, '')
-			title = elem.inner_text.gsub(/^\d+:/, '').gsub(/\(\d+\)/, '').strip
+			url = @agent.page.base.href + elem['href'].gsub(/l50/, '')
+			title = elem.inner_text.gsub(/^\d+:/, '').gsub(/\(\d+\)$/, '').strip
 			links[url] = title
 		end
 		links
