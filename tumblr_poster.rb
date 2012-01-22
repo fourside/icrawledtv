@@ -39,14 +39,17 @@ class TumblrPoster
 
 	def run
 		init
-		@log = Logger.new('./log.log')
-		@log.level = Logger::DEBUG
+		log = Logger.new(File.dirname(__FILE__) + '/log/response.log')
+		log.level = Logger::DEBUG
 		Link.where(:is_posted => false).order(:created_at).each do |link|
 			params = get_params(link)
 			res = post_image(params)
+			log.debug(res)
 			mark(params) if res['meta']['status'] == 201
+			break if reach_limit?(res)
 		end
 		delete_a_week_ago
+		puts "#{File.basename(__FILE__)} @#{Time.now}"
 	end
 
 	def get_params(link)
