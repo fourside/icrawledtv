@@ -55,15 +55,12 @@ class EdtvCrawler
 		list
 	end
 
-	def save_links
-		thread_urls.each do |url, title|
+	def save_links(subback)
+		thread_urls(subback['url']).each do |url, title|
 			scrapelinks(url).each do |img|
 				link = Link.new
-				link.image_url, link.thread_url, link.title = img, url, title
-				begin
-					link.save
-				rescue # ignore exception
-				end
+				link.image_url, link.thread_url, link.title, link.tv = img, url, title, subback['tv']
+				link.save
 			end
 		end
 	end
