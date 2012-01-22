@@ -46,7 +46,7 @@ class EdtvCrawler
 		@agent.page.search("//dd").each do |elem|
 			if elem.inner_text.index('ttp')
 				elem.inner_text.split.each do |url|
-					next unless /^h?ttp:\/\/(?:www\.)?(?:iup|10up|epcan|jlab|tv|uproda|rupan|ruru2).*\.(?:jpg|gif|png|jpeg)$/ =~ url
+					next unless /^h?ttp:\/\/(?:www\.)?(?:dotup|iup|10up|epcan|jlab|tv|uproda|rupan|ruru2).*\.(?:jpg|gif|png|jpeg)$/ =~ url
 					url = 'h' + url unless url[0] == 'h'
 					list << url
 				end
