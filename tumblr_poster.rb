@@ -76,6 +76,16 @@ class TumblrPoster
 		a_week_ago = Time.now - 1.week
 		Link.delete_all("created_at <= '#{a_week_ago}'")
 	end
+
+	def reach_limit?(res)
+		return false unless res["response"].key?("errors")
+		case res["response"]["errors"]
+			when Hash
+				true
+			else
+				false
+		end
+	end
 end
 
 #TumblrPoster.new.get_tokens
