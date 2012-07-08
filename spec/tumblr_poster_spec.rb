@@ -2,6 +2,8 @@
 require 'rspec'
 require '../tumblr_poster'
 require '../db/001_create_links'
+require '../db/002_add_column_links'
+require '../db/003_add_column_img_hash_links'
 
 describe TumblrPoster do
 	before(:all) do
@@ -72,6 +74,24 @@ describe TumblrPoster do
 		it "should delete records created at 1 week ago" do
 			@tumblr_poster.delete_a_week_ago
 			Link.where(:image_url => @params['source']).first.should be nil
+		end
+	end
+
+	describe "when it reached a limit" do
+		before do
+			@res400 = {"meta"=>{"status"=>400, "msg"=>"Bad Request"}, "response"=>{"errors"=>{"type"=>"Oh no! You've reached your photo upload limit for today. Please come again tomorrow!"}}}
+		end
+		it "should be false" do
+			@tumblr_poster.reach_limit?(@res400).should be_true
+		end
+	end
+
+	describe "when it errored uploading photo" do
+		before do
+			@res400 = {"meta"=>{"status"=>400, "msg"=>"Bad Request"}, "response"=>{"errors"=>["Error uploading photo."]}}
+		end
+		it "should be false" do
+			@tumblr_poster.reach_limit?(@res400).should be_false
 		end
 	end
 end
