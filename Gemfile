@@ -1,14 +1,12 @@
-# A sample Gemfile
 source "http://rubygems.org"
 
 gem "sinatra"
+gem "mechanize"
 gem "rake"
 gem "haml"
 gem "activerecord"
 gem "shotgun"
-group :production do
-	gem "pg"
-end
+gem "ruby-mysql"
 group :development, :test  do
-	gem "taps"
+  gem "taps"
 end
