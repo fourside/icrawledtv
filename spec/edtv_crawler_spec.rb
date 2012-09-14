@@ -3,6 +3,7 @@ require 'rspec'
 require '../edtv_crawler'
 require '../db/001_create_links'
 require '../db/002_add_column_links'
+require '../db/003_add_column_links_image_local_path'
 
 describe EdtvCrawler do
   before(:all) do
@@ -12,9 +13,9 @@ describe EdtvCrawler do
       'tv' => 'ntv'}
   end
 
-  describe "when call thread_urls method" do
+  describe "when call get_threads method" do
     before do
-      @thread_urls = @crawler.thread_urls(@subback['url'])
+      @thread_urls = @crawler.get_threads(@subback['url'])
     end
 
     it "should get hash" do
@@ -34,10 +35,10 @@ describe EdtvCrawler do
     end
   end
 
-  describe "when call scrapelinks method" do
+  describe "when call get_img_urls method" do
     before do
-      urls = @crawler.thread_urls(@subback['url']).keys
-      @scrapelinks = @crawler.scrapelinks(urls[1])
+      urls = @crawler.get_threads(@subback['url']).keys
+      @scrapelinks = @crawler.get_img_urls(urls[1])
     end
 
     it "should get array" do
@@ -60,28 +61,25 @@ describe EdtvCrawler do
       )
       CreateLinks::up
       AddColumnLinks::up
+      AddColumnLinksImageLocalPath::up
     end
-    it "should saved image link" do
-      @crawler.save_links(@subback)
+    it "should save image link" do
+      @crawler.save_links @subback['url'], @subback['tv']
       Link.find(:all).size.should have_at_least(1).items
     end
   end
 
-  describe "when call subbacks" do
+  describe "when call download_img" do
     before do
-      @subbacks = @crawler.subbacks
+      @url = "https://www.google.co.jp/images/srpr/logo3w.png"
+      @file = File.basename(@url)
     end
-    it "should return array of subback" do
-      @subbacks.class.should be Array
+    it "should save image file to ./img/" do
+      @crawler.download_img @url
+      File.size("../img/#{@file}").should_not be_zero
     end
-    it "should return array of subback, which element is hash" do
-      @subbacks.first.class.should be Hash
-    end
-    it "should return array of subback, which hash has url" do
-      @subbacks.first['url'].should match /^http:/
-    end
-    it "should return array of subback, which hash has tv name" do
-      @subbacks.first['tv'].should match /^(etv|nhk|bs|mx)$/
+    after do
+      FileUtils.rm "../img/#{@file}"
     end
   end
 
