@@ -9,13 +9,18 @@ require File.dirname(__FILE__) + '/link'
 class CrawlerDriver
   def drive
     crawlers = []
+    links = []
     yaml = File.dirname(__FILE__) + '/' + ARGV.first
     YAML.load_file(yaml).each do |subback|
       crawlers << Thread.new do
-        EdtvCrawler.new.run(subback)
+        links << EdtvCrawler.new.run(subback)
       end
     end
     crawlers.each {|t| t.join}
+    links.sort {|a, b| a.tv <=> b.tv}.each do |link|
+      link.save
+    end
+
   end
 end
 
@@ -32,6 +37,7 @@ class EdtvCrawler
   end
 
   def save_links subback_url, subback_name
+    links = []
     get_threads(subback_url).each do |thread_url, title|
       get_img_urls(thread_url).each do |img_url|
         link = Link.new
@@ -40,13 +46,14 @@ class EdtvCrawler
           thumbnail = make_thumbnail(local_file)
           link.image_url, link.thread_url, link.title, link.tv      =
           img_url,        thread_url,      title,      subback_name
-          link.save
+          links << link
         rescue => e
           p e
           p img_url
         end
       end
     end
+    link
   end
 
 # key: thread url
@@ -81,7 +88,7 @@ class EdtvCrawler
               File.open("except_url.txt", "a") {|file| file.write(uri.to_s + "\n") } if uri.path.index(/jpe?g|png|gif/)
             end
           rescue => e
-            p e
+            p e unless e.class == DownloadException
           end
         end
       end
@@ -99,14 +106,14 @@ class EdtvCrawler
   def download_img url
     path_prefix = File.dirname(__FILE__) + '/public/img/'
     filename = path_prefix + File.basename(url)
-    raise "already exists: #{filename}" if File.exist?(path_prefix + filename)
+    raise DownloadException.new("already exists: #{filename}") if File.exist?(path_prefix + filename)
     open(filename, 'wb') do |file|
       open(url) do |resource|
         file.write(resource.read)
       end
     end
-    raise "file is empty: #{filename}" if File.size(filename) == 0
-    raise "file is not image: #{filename}" unless image?(filename)
+    raise DownloadException.new("file is empty: #{filename}") if File.size(filename) == 0
+    raise DownloadException.new("file is not image: #{filename}") unless image?(filename)
     filename
   end
 
@@ -123,6 +130,7 @@ class EdtvCrawler
   end
 
 end
+class DownloadException < StandardError; end
 
 if __FILE__ == $0
   CrawlerDriver.new.drive
