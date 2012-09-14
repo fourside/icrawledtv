@@ -4,9 +4,6 @@ require 'mechanize'
 require 'open-uri'
 require 'uri'
 require 'RMagick'
-# TODO
-# thread
-# except thread filer
 
 require File.dirname(__FILE__) + '/link'
 
@@ -70,7 +67,7 @@ class EdtvCrawler
         elem.inner_text.split(/ |　/).each do |url_text|
           uri = URI.parse(url_text)
           uri.scheme = 'http' unless uri.scheme != 'http'
-          if uploader? uri
+          if uploader? uri.to_s
             list << uri.to_s
           else
             File.open("except_url.txt", "a") {|file| file.write(uri.to_s + "\n") } if uri.path.index(/jpe?g|png|gif/)
