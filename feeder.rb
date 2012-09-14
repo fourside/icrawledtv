@@ -74,6 +74,7 @@ __END__
 %html
   %head
     %title icarwledtv
+    %meta{:charset => 'utf-8'}
     %link{:href => "/css/common.css", :rel => "stylesheet", :type => "text/css"}
     %link{:rel => "alternate", :type => "application/rss+xml", :title => "RSS", :href => "/rss"}
   %body
@@ -133,6 +134,7 @@ __END__
 %html
   %head
     %title icrawledtv - #{h(@tv)}
+    %meta{:charset => 'utf-8'}
     %link{:href => "/css/common.css", :rel => "stylesheet", :type => "text/css"}
     %link{:rel => "alternate", :type => "application/rss+xml", :title => "RSS", :href => "/rss/#{@tv}"}
   %body
