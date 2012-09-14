@@ -7,6 +7,11 @@ gem "haml"
 gem "activerecord"
 gem "shotgun"
 gem "ruby-mysql"
+gem "rspec"
+
+gem "rmagick"
+
 group :development, :test  do
   gem "taps"
+  gem "sqlite3-ruby"
 end
