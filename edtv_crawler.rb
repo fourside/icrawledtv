@@ -4,8 +4,20 @@ require 'mechanize'
 require 'open-uri'
 require 'uri'
 require 'RMagick'
-
 require File.dirname(__FILE__) + '/link'
+
+class CrawlerDriver
+  def drive
+    crawlers = []
+    yaml = File.dirname(__FILE__) + '/subbacks.yaml'
+    YAML.load_file(yaml).each do |subback|
+      crawlers << Thread.new do
+        EdtvCrawler.new.run(subback)
+      end
+    end
+    crawlers.each {|t| t.join}
+  end
+end
 
 class EdtvCrawler
 
@@ -16,11 +28,8 @@ class EdtvCrawler
     end
   end
 
-  def main
-    yaml = File.dirname(__FILE__) + '/subbacks.yaml'
-    YAML.load_file(yaml).each do |subback|
-      save_links subback['url'], subback['tv']
-    end
+  def run subback
+    save_links subback['url'], subback['tv']
   end
 
   def save_links subback_url, subback_name
@@ -65,12 +74,18 @@ class EdtvCrawler
     @agent.page.search("//dd").each do |elem|
       if elem.inner_text.index('ttp')
         elem.inner_text.split(/ |　/).each do |url_text|
-          uri = URI.parse(url_text)
-          uri.scheme = 'http' unless uri.scheme != 'http'
-          if uploader? uri.to_s
-            list << uri.to_s
-          else
-            File.open("except_url.txt", "a") {|file| file.write(uri.to_s + "\n") } if uri.path.index(/jpe?g|png|gif/)
+          #next unless url_text.index('ttp')
+          next unless /(h?ttp.+(?:jpe?g|gif|png))/ =~ url_text
+          begin
+            uri = URI.parse($1)
+            uri.scheme = 'http' if uri.scheme != 'http'
+            if uploader? uri.to_s
+              list << uri.to_s
+            else
+              File.open("except_url.txt", "a") {|file| file.write(uri.to_s + "\n") } if uri.path.index(/jpe?g|png|gif/)
+            end
+          rescue => e
+            p e
           end
         end
       end
@@ -105,5 +120,5 @@ class EdtvCrawler
 end
 
 if __FILE__ == $0
-  EdtvCrawler.new.main
+  CrawlerDriver.new.drive
 end
