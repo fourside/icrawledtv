@@ -53,7 +53,7 @@ class EdtvCrawler
         end
       end
     end
-    link
+    links
   end
 
 # key: thread url
@@ -130,7 +130,20 @@ class EdtvCrawler
   end
 
 end
+
 class DownloadException < StandardError; end
+
+class Hash
+  def deny keyword
+    return self if keyword.nil?
+    return {} if keyword == :all
+    self.delete_if {|key, value| /#{keyword}/i =~ value }
+  end
+  def allow keyword
+    return self if keyword.nil? || keyword == :all
+    self.delete_if {|key, value| /#{keyword}/i !~ value }
+  end
+end
 
 if __FILE__ == $0
   CrawlerDriver.new.drive
