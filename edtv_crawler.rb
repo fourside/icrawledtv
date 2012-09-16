@@ -13,12 +13,16 @@ class CrawlerDriver
     yaml = File.dirname(__FILE__) + '/' + ARGV.first
     YAML.load_file(yaml).each do |subback|
       crawlers << Thread.new do
-        links << EdtvCrawler.new.run(subback)
+        ActiveRecord::Base.connection_pool.with_connection do
+          links += EdtvCrawler.new.run(subback)
+          sleep 5
+        end
       end
     end
     crawlers.each {|t| t.join}
     links.sort {|a, b| a.tv <=> b.tv}.each do |link|
       link.save
+      sleep 1
     end
 
   end
@@ -44,8 +48,10 @@ class EdtvCrawler
         begin
           local_file = download_img(img_url)
           thumbnail = make_thumbnail(local_file)
-          link.image_url, link.thread_url, link.title, link.tv      =
-          img_url,        thread_url,      title,      subback_name
+          link.thread_url = thread_url
+          link.title      = title
+          link.tv         = subback_name
+          link.image_url  = img_url
           links << link
         rescue => e
           p e
@@ -98,9 +104,6 @@ class EdtvCrawler
 
   def uploader? url
     /ttp:\/\/(?:www\.)?(?:dotup|iup|10up|epcan|jlab|tv|uproda|rupan|ruru2|tv2ch|motto-jimidane|file\.jabro|hayabusa|folderman|live2|age2|pa4?\.dip\.jp|up2?\.pandoravote\.net|long\.2chan\.tv|fat\.5pb\.org|up\.null-x|cap\d{3}\.areya|tv\.dee|fastpic\.jp|livetests\.info|katsakuri\.sakura|niceboat|2ch\.at|2chlog\.com|ana\.uploda|livecap|up3\.viploader).*\.(?:jpg|gif|png|jpeg)$/i =~ url
-  end
-
-  def ignore
   end
 
   def download_img url
