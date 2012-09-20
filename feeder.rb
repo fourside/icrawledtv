@@ -12,13 +12,20 @@ before do
   @host = "#{request.scheme}://#{request.host}:#{request.port}"
 end
 
+configure do
+  set :sessions, true
+end
+
 get '/:page' do
 
   redirect '/' unless params[:page] =~ /^\d+/
   @categories = Link.group(:tv)
   count_per_page = 10
   @page  = params[:page].to_i
-  @links = Link.where(:is_posted => 'f').order('created_at desc').offset(@page * count_per_page - 1).limit(count_per_page)
+  origination = request.cookies['s'].to_i
+  from = origination - (@page - 1) * count_per_page
+  to   = from - count_per_page
+  @links = Link.where(:id => to...from).order('created_at desc')
   last_page = (Link.where(:is_posted => 'f').size / count_per_page).ceil
   @next = @page != last_page ? @page + 1 : nil
   @prev = @page > 1 ? @page - 1 : nil
@@ -30,6 +37,7 @@ get '/' do
   count_per_page = 10
   @page = 1 unless @page
   @links = Link.where(:is_posted => 'f').order('created_at desc').offset(@page * count_per_page - 1).limit(count_per_page)
+  response.set_cookie('s', :value => @links.first.id)
   last_page = (Link.where(:is_posted => 'f').size / count_per_page).ceil
   @next = @page != last_page ? @page + 1 : nil
   @prev = @page > 1 ? @page - 1 : nil
@@ -86,7 +94,7 @@ __END__
           %li.tv
             %a{:href => "/tv/#{h(cat.tv)}"} #{h(cat.tv)}
       %p #{@page} page
-      %div.hfeed
+      %div.hfeed.autopagerize_page_element
         - @links.each do |link|
           %div.hentry
             %h3{:class => "entry-title", :id => link.id}
@@ -100,6 +108,8 @@ __END__
               %ul
                 %li
                   %a{:href => "#{link.image_url}"} #{link.image_url}
+                %li
+                  #{h(link.id)}
                 %li
                   %a{:href => "/#{link.tv}", :rel => "tag"} [#{link.tv}]
                 %li.author.vcard{:style => "display:none"}
