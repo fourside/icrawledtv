@@ -81,14 +81,14 @@ __END__
 !!!
 %html
   %head
-    %title icarwledtv
+    %title icrawledtv
     %meta{:charset => 'utf-8'}
     %link{:href => "/css/common.css", :rel => "stylesheet", :type => "text/css"}
     %link{:rel => "alternate", :type => "application/rss+xml", :title => "RSS", :href => "/rss"}
   %body
     %div.container
       %h1
-        %a{:href => '/'}icarwledtv
+        %a{:href => '/'}icrawledtv
       %ul.categories
         - @categories.each do |cat|
           %li.tv
@@ -150,7 +150,7 @@ __END__
   %body
     %div.container
       %h1
-        %a{:href => '/'}icarwledtv
+        %a{:href => '/'}icrawledtv
       %h2
         %a{:href => "/tv/#{h(@tv)}"}#{h(@tv)}
       %p #{@page} page
