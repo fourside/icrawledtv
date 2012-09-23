@@ -63,7 +63,6 @@ get '/tv/:tv/:page' do
 end
 
 get '/tv/:tv/?*' do
-  content_type 'text/html; charset=utf-8'
   count_per_page = 10
   @page = 1 unless @page
   @tv   = params[:tv]
@@ -72,6 +71,20 @@ get '/tv/:tv/?*' do
   @next = @page != last_page ? @page + 1 : nil
   @prev = @page > 1 ? @page - 1 : nil
   haml :tv
+end
+
+get '/id/:id' do
+  redirect '/' unless params[:id] =~ /^\d+/
+  @categories = Link.group(:tv)
+  @page = 1
+  id = params[:id].to_i
+  count_per_page = 10
+  @links = Link.where(:id => (id - count_per_page)..id).order('created_at desc')
+  response.set_cookie('s', :value => params[:id], :expires => Time.now + (60*60*24*7))
+  last_page = (Link.where(:is_posted => 'f').size / count_per_page).ceil
+  @next = @page != last_page ? @page + 1 : nil
+  @prev = @page > 1 ? @page - 1 : nil
+  haml :index
 end
 
 __END__
