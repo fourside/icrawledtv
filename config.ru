@@ -1,3 +1,3 @@
 require './feeder'
-use ActiveRecode::ConnectionAdapters::ConnectionManagement
+#use ActiveRecode::ConnectionAdapters::ConnectionManagement
 run Sinatra::Application

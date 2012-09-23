@@ -8,6 +8,7 @@ gem "activerecord"
 gem "shotgun"
 gem "ruby-mysql"
 gem "rspec"
+gem "unicorn"
 
 gem "rmagick"
 
