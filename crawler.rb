@@ -30,7 +30,7 @@ class Board
         line = line.encode('UTF-8', invalid: :replace, undef: :replace)
         # "1347844405.dat<>title (int)\n"
         /^(\d+\.dat)<>(.+) \(\d+\)/ =~ line
-        dat_url = thread_url + 'dat/' + $1
+        dat_url = board_url + 'dat/' + $1
         threads[dat_url] = $2
       end
     end
@@ -73,7 +73,7 @@ class ThreadParser
   end
 
   def extract_url text
-    text.scan(/(h?ttp:\/\/.+?(?:jpe?g|png|gif))/)
+    text.scan(/(h?ttp:\/\/[^ ]+?(?:jpe?g|png|gif))/i)
   end
 
 end
@@ -85,7 +85,7 @@ class UplodaImage
   end
 
   def download
-    unless uploader? @uri.domain
+    unless uploader? @uri.host
       File.open("except_url.txt", "a") {|file| file.write(@uri.to_s + "\n") }
       raise DownloadException.new("not targeted uploader: #{@uri.to_s}")
     end
@@ -112,8 +112,8 @@ class UplodaImage
   end
 
   # TODO: make this regexp be maintainnable
-  def uploader? domain
-    /(?:dotup|iup|10up|epcan|jlab|tv|uproda|rupan|ruru2|tv2ch|motto-jimidane|file\.jabro|hayabusa|folderman|live2|age2|pa4?\.dip\.jp|up2?\.pandoravote\.net|long\.2chan\.tv|fat\.5pb\.org|up\.null-x|cap\d{3}\.areya|tv\.dee|fastpic\.jp|livetests\.info|katsakuri\.sakura|niceboat|2ch\.at|2chlog\.com|ana\.uploda|livecap|up3\.viploader)$/i =~ domain
+  def uploader? host
+    /(?:dotup|iup|10up|epcan|jlab|tv|uproda|rupan|ruru2|tv2ch|motto-jimidane|file\.jabro|hayabusa|folderman|live2|age2|pa4?\.dip\.jp|up2?\.pandoravote\.net|long\.2chan\.tv|fat\.5pb\.org|up\.null-x|cap\d{3}\.areya|tv\.dee|fastpic\.jp|livetests\.info|katsakuri\.sakura|niceboat|2ch\.at|2chlog\.com|ana\.uploda|livecap|up3\.viploader)$/i =~ host
   end
 
   def image? file
