@@ -17,12 +17,12 @@ configure do
 end
 
 get '/:page' do
-  redirect '/' unless params[:page] =~ /^\d+/
+  redirect '/' unless params[:page] =~ /^\d+/ || request.cookies['s'].nil?
   @categories = Link.group(:tv)
   count_per_page = 10
   @page  = params[:page].to_i
-  origination = request.cookies['s'].to_i
-  from = origination - (@page - 1) * count_per_page
+  origination = request.cookies['s']
+  from = origination.to_i - (@page - 1) * count_per_page
   to   = from - count_per_page
   @links = Link.where(:id => to...from).order('created_at desc')
   last_page = (Link.where(:is_posted => 'f').size / count_per_page).ceil
