@@ -131,6 +131,8 @@ class Crawler
         link.save
       end
     end
+  rescue => e
+    $stderr.puts "#{e.class}|#{e.message}|#{e.backtrace}|#{Time.now}"
   end
 
   def get_links subbacks
@@ -150,7 +152,7 @@ class Crawler
             links << link
           rescue DownloadException # do nothing
           rescue => e
-            $stderr.puts e
+            $stderr.puts "#{e.class}|#{e.message}|#{e.backtrace}|#{Time.now}"
           end
         end
       end
