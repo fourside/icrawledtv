@@ -83,6 +83,7 @@ class UplodaImage
     @uri = URI.parse(url)
     @uri.scheme = 'http' if @uri.scheme == 'ttp'
   end
+  attr_reader :uri
 
   def download
     unless uploader? @uri.host
@@ -148,7 +149,7 @@ class Crawler
             link.title      = thread_title
             link.thread_url = thread_url
             link.tv         = board['tv']
-            link.image_url  = image_url
+            link.image_url  = uploda_image.uri
             links << link
           rescue DownloadException # do nothing
           rescue => e
