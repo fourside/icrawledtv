@@ -7,7 +7,6 @@ require File.dirname(__FILE__) + '/link'
 
 class Board
   def initialize board, filter
-    @is_bourbon_house = false
     @tv      = board['tv']
     @threads = filter_threads(scrape_thread_list(board['url']), filter)
   end
@@ -22,25 +21,18 @@ class Board
     threads = {}
     # subject.txt is text/plain(sjis)
     open(board_url+'subject.txt', 'r:Shift_JIS') do |response|
-      if response.status[0] != '200'
-        @is_bourbon_house = true
-        return {} # return Hash for filter_threads method
-      end
       response.each_line do |line|
         line = line.encode('UTF-8', invalid: :replace, undef: :replace)
         # "1347844405.dat<>title (int)\n"
         /^(\d+\.dat)<>(.+) \(\d+\)/ =~ line
+        # see unmatching pattern as bourbon house
+        raise BourbonHouseException.new("at #{board_url}") unless $1
         dat_url = board_url + 'dat/' + $1
         threads[dat_url] = $2
       end
     end
     threads
   end
-
-  def bourbon_house?
-    @is_bourbon_house
-  end
-
 end
 
 class Hash
@@ -64,8 +56,11 @@ class ThreadParser
     open(url, 'r:Shift_JIS') do |response| # http response body is normally text/plain
       response.each_line do |line|
         # name<>mail<>yyyy/mm/dd(月) HH:MM:SS.mm ID:id<>content<>thread title at only first line
-        content = line.encode('UTF-8', invalid: :replace, undef: :replace).split('<>')[3]
-        next if content.nil? || ! content.include?('ttp')
+        tokens = line.encode('UTF-8', invalid: :replace, undef: :replace).split('<>')
+        # see line that didnt split as bourbon house
+        raise BourbonHouseException.new("at #{url}") if tokens.size < 3
+        content = tokens[3]
+        next unless content.include?('ttp')
         image_urls.push(extract_url(content))
       end
     end
@@ -123,7 +118,10 @@ class UplodaImage
 end
 
 class Crawler
+  LOCK_FILE = 'bourbonhouse.lock' # if exists, restricted to access 2ch.net for 2 hours.
+
   def drive
+    exit 1 if in_a_bourbon_house?
     links = []
     Dir.glob(File.dirname(__FILE__) + '/subbacks/*yaml').each do |subback_file|
       subbacks = YAML.load_file(subback_file)
@@ -132,8 +130,20 @@ class Crawler
         link.save
       end
     end
+  rescue BourbonHouseException => e
+    $stderr.puts "#{e.class}|#{e.message}||#{Time.now}"
+    File.open(LOCK_FILE, 'w').close
   rescue => e
     $stderr.puts "#{e.class}|#{e.message}|#{e.backtrace}|#{Time.now}"
+  end
+
+  def in_a_bourbon_house?
+    if File.exist? LOCK_FILE
+      passed_hour = Time.now.hour - File.mtime(LOCK_FILE).hour
+      if passed_hour < 2
+        return true
+      end
+    end
   end
 
   def get_links subbacks
@@ -164,5 +174,6 @@ class Crawler
 end
 
 class DownloadException < StandardError; end
+class BourbonHouseException < StandardError; end
 
 Crawler.new.drive if __FILE__ == $0
