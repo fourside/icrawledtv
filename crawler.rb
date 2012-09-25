@@ -109,7 +109,7 @@ class UplodaImage
 
   # TODO: make this regexp be maintainnable
   def uploader? host
-    /(?:dotup|iup|10up|epcan|jlab|tv|uproda|rupan|ruru2|tv2ch|motto-jimidane|file\.jabro|hayabusa|folderman|live2|age2|pa4?\.dip\.jp|up2?\.pandoravote\.net|long\.2chan\.tv|fat\.5pb\.org|up\.null-x|cap\d{3}\.areya|tv\.dee|fastpic\.jp|livetests\.info|katsakuri\.sakura|niceboat|2ch\.at|2chlog\.com|ana\.uploda|livecap|up3\.viploader)$/i =~ host
+    /(?:dotup|iup|10up|epcan|jlab|tv|uproda|rupan|ruru2|tv2ch|motto-jimidane|file\.jabro|hayabusa|folderman|live2|age2|pa4?\.dip\.jp|up2?\.pandoravote\.net|long\.2chan\.tv|fat\.5pb\.org|up\.null-x|cap\d{3}\.areya|tv\.dee|fastpic\.jp|livetests\.info|katsakuri\.sakura|niceboat|2ch\.at|2chlog\.com|ana\.uploda|livecap|up3\.viploader)/i =~ host
   end
 
   def image? file
@@ -159,9 +159,11 @@ class Crawler
             link.title      = thread_title
             link.thread_url = thread_url
             link.tv         = board['tv']
-            link.image_url  = uploda_image.uri
+            link.image_url  = uploda_image.uri.to_s
             links << link
           rescue DownloadException # do nothing
+          rescue OpenURI::HTTPError => e
+            $stderr.puts "#{e.class}|#{e.message}:#{uploda_image.uri.to_s}||#{Time.now}"
           rescue => e
             $stderr.puts "#{e.class}|#{e.message}|#{e.backtrace}|#{Time.now}"
           end
