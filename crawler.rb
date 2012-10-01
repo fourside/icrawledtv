@@ -123,7 +123,7 @@ class Crawler
   def drive
     exit 1 if in_a_bourbon_house?
     links = []
-    Dir.glob(File.dirname(__FILE__) + '/subbacks/*yaml').each do |subback_file|
+    read_subbacks.each do |subback_file|
       subbacks = YAML.load_file(subback_file)
       links = get_links(subbacks)
       links.sort {|a, b| a.tv <=> b.tv}.each do |link|
@@ -135,6 +135,14 @@ class Crawler
     File.open(LOCK_FILE, 'w').close
   rescue => e
     $stderr.puts "#{e.class}|#{e.message}|#{e.backtrace}|#{Time.now}"
+  end
+
+  def read_subbacks
+    if ARGV.empty?
+      Dir.glob(File.dirname(__FILE__) + '/subbacks/*yaml')
+    else
+      ARGV
+    end
   end
 
   def in_a_bourbon_house?
