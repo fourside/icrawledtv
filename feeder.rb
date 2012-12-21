@@ -3,88 +3,103 @@ require 'sinatra'
 require 'haml'
 require 'shotgun'
 require File.dirname(__FILE__) + '/link'
+require File.dirname(__FILE__) + '/page'
 
 helpers do
-  include Rack::Utils; alias_method :h, :escape_html
-end
-
-before do
-  @host = "#{request.scheme}://#{request.host}:#{request.port}"
+  include Rack::Utils
+  alias_method :h, :escape_html
+  def set_cookie id # entry point
+    response.set_cookie('s', :value => id, :expires => Time.now + (60*60*24*7))
+  end
+  def get_cookie
+    request.cookies['s']
+  end
+  # for use of SQL between phrase
+  def get_id_range origin, current_page # FIXME clunky name
+    from = origin.to_i - ((current_page - 1) * Page::COUNT_OF_ENTRIES)
+    to   = from - Page::COUNT_OF_ENTRIES
+    to...from # from is larger id number.
+  end
+  def caption # TODO move from Link object method => not needed.
+    #"<a href='#{self.thread_url}'>#{self.title}</a>"
+  end
 end
 
 configure do
   set :sessions, true
 end
 
+before do
+  @host = "#{request.scheme}://#{request.host}:#{request.port}" # FIXME wrong name
+  @title = 'icrawledtv'
+  @base_url = '/'
+  @categories = Link.group(:tv) unless /rss/ =~ request.path
+end
+
+before '/tv/:tv' do
+  @title += ' - ' + params[:tv]
+  @base_url = "/tv/#{params[:tv]}/"
+end
+
 get '/:page' do
-  redirect '/' unless params[:page] =~ /^\d+/ || request.cookies['s'].nil?
-  @categories = Link.group(:tv)
-  count_per_page = 10
-  @page  = params[:page].to_i
-  origination = request.cookies['s']
-  from = origination.to_i - (@page - 1) * count_per_page
-  to   = from - count_per_page
-  @links = Link.where(:id => to...from).order('created_at desc')
-  last_page = (Link.where(:is_posted => 'f').size / count_per_page).ceil
-  @next = @page != last_page ? @page + 1 : nil
-  @prev = @page > 1 ? @page - 1 : nil
-  haml :index
+  pass if params[:page] =~ /^\d+/ || get_cookie
+  @page  = Page.new(params[:page].to_i, Link.count)
+  origination = get_cookie
+  from = origination.to_i - ((@page.current - 1) * Page::COUNT_OF_ENTRIES)
+  to   = from - Page::COUNT_OF_ENTRIES
+  @links = Link.where(:id => to...from).order('id desc')
+  haml :index, :format => :html5
 end
 
 get '/' do
-  @categories = Link.group(:tv)
-  count_per_page = 10
-  @page = 1 unless @page
-  @links = Link.where(:is_posted => 'f').order('created_at desc').offset(@page * count_per_page - 1).limit(count_per_page)
-  response.set_cookie('s', :value => @links.first.id, :expires => Time.now + (60*60*24*7))
-  last_page = (Link.where(:is_posted => 'f').size / count_per_page).ceil
-  @next = @page != last_page ? @page + 1 : nil
-  @prev = @page > 1 ? @page - 1 : nil
-  haml :index
+  @page = Page.new(1, Link.count)
+  @links = Link.order('id desc').limit(Page::COUNT_OF_ENTRIES)
+  set_cookie(@links.first.id)
+  haml :index, :format => :html5
 end
 
 get '/rss' do
   content_type 'text/xml; charset=utf-8'
-  @links = Link.where(:is_posted => 'f').order('created_at desc').limit(200)
-  @title = ''
+  @links = Link.order('id desc').limit(200)
   haml :rss
 end
 
 get '/rss/:tv' do
   content_type 'text/xml; charset=utf-8'
-  @links = Link.where(:is_posted => 'f', :tv => params[:tv]).order('created_at desc').limit(200)
-  @title = ' - ' + params[:tv]
+  @links = Link.where(:tv => params[:tv]).order('id desc').limit(200)
+  @title += ' - ' + params[:tv]
   haml :rss
 end
 
 get '/tv/:tv/:page' do
-  @page  = params[:page] =~ /^\d+$/ ? params[:page].to_i : nil
-  pass
+  @tv   = params[:tv]
+  @page  = Page.new(params[:page].to_i, Link.where(:tv => @tv).size)
+  origination = get_cookie
+  from = origination.to_i - ((@page.current - 1) * Page::COUNT_OF_ENTRIES)
+  to   = from - Page::COUNT_OF_ENTRIES
+  @links = Link.where(:tv => @tv, :id => to...from).order('id desc')
+  haml :index, :format => :html5
 end
 
-get '/tv/:tv/?*' do
-  count_per_page = 10
-  @page = 1 unless @page
+get '/tv/:tv' do
   @tv   = params[:tv]
-  @links = Link.where(:tv => @tv).order('created_at desc').offset(@page * count_per_page - 1).limit(count_per_page)
-  last_page = (Link.where(:tv => @tv).size / count_per_page).ceil
-  @next = @page != last_page ? @page + 1 : nil
-  @prev = @page > 1 ? @page - 1 : nil
-  haml :tv
+  @page = Page.new(1, Link.where(:tv => @tv).size)
+  @links = Link.where(:tv => @tv).order('id desc').limit(Page::COUNT_OF_ENTRIES)
+  set_cookie(@links.first.id)
+  haml :index, :format => :html5
 end
 
 get '/id/:id' do
   redirect '/' unless params[:id] =~ /^\d+/
-  @categories = Link.group(:tv)
-  @page = 1
   id = params[:id].to_i
-  count_per_page = 10
-  @links = Link.where(:id => (id - count_per_page)..id).order('created_at desc')
-  response.set_cookie('s', :value => params[:id], :expires => Time.now + (60*60*24*7))
-  last_page = (Link.where(:is_posted => 'f').size / count_per_page).ceil
-  @next = @page != last_page ? @page + 1 : nil
-  @prev = @page > 1 ? @page - 1 : nil
-  haml :index
+  @page = Page.new(1, Link.count("id < id"))
+  @links = Link.where(:id => (id - Page::COUNT_OF_ENTRIES)..id).order('id desc')
+  set_cookie(id)
+  haml :index, :format => :html5
+end
+
+error do
+  'an error occured. ' + env['sinatra.error'].name
 end
 
 __END__
@@ -93,20 +108,21 @@ __END__
 !!!
 %html
   %head
-    %title icrawledtv
+    %title #{@title}
     %meta{:charset => 'utf-8'}
+    %base{:href => "#{@base_url}"}
     %link{:href => "/css/common.css", :rel => "stylesheet", :type => "text/css"}
-    %link{:rel => "alternate", :type => "application/rss+xml", :title => "RSS", :href => "/rss"}
+    %link{:rel => "alternate", :type => "application/rss+xml", :title => "RSS", :href => "rss"}
   %body
     %div.container
       %h1
-        %a{:href => '/'}icrawledtv
+        %a{:href => '/'} #{@title}
       %ul.categories
         - @categories.each do |cat|
           %li.tv
             %a{:href => "/tv/#{h(cat.tv)}"} #{h(cat.tv)}
-      %p #{@page} page
-      %div.hfeed.autopagerize_page_element
+      %p #{@page.current} page
+      %div.hfeed
         - @links.each do |link|
           %div.hentry
             %h3{:class => "entry-title", :id => link.id}
@@ -121,19 +137,20 @@ __END__
                 %li
                   %a{:href => "#{link.image_url}"} #{link.image_url}
                 %li
-                  #{h(link.id)}
+                  id:
+                  %a{:href => "/id/#{h(link.id)}"} #{h(link.id)}
                 %li
-                  %a{:href => "/#{link.tv}", :rel => "tag"} [#{link.tv}]
+                  %a{:href => "/tv/#{link.tv}", :rel => "tag"} [#{link.tv}]
                 %li.author.vcard{:style => "display:none"}
                   %span.nickname.fn me
                 %li.published
                   %abbr.updated{:title => "#{link.created_at.iso8601}"} #{link.created_at}
       %p.pager
-        - if @prev
-          %a{:href => "/#{@prev}", :rel => 'prev'}prev
+        - if @page.prev
+          %a{:href => "#{@page.prev}", :rel => 'prev'}prev
           &nbsp;|
-        - if @next
-          %a{:href => "/#{@next}", :rel => 'next'}next
+        - if @page.next
+          %a{:href => "#{@page.next}", :rel => 'next'}next
 
 @@ rss
 !!!XML utf-8
@@ -150,45 +167,3 @@ __END__
         %link #{h(link.thread_url)}
         %guid #{link.id}
         %pubDate #{link.created_at}
-
-@@ tv
-!!!
-%html
-  %head
-    %title icrawledtv - #{h(@tv)}
-    %meta{:charset => 'utf-8'}
-    %link{:href => "/css/common.css", :rel => "stylesheet", :type => "text/css"}
-    %link{:rel => "alternate", :type => "application/rss+xml", :title => "RSS", :href => "/rss/#{@tv}"}
-  %body
-    %div.container
-      %h1
-        %a{:href => '/'}icrawledtv
-      %h2
-        %a{:href => "/tv/#{h(@tv)}"}#{h(@tv)}
-      %p #{@page} page
-      %div.hfeed
-        - @links.each do |link|
-          %div.hentry
-            %h3{:class => "entry-title", :id => link.id}
-              %p
-                %a{:href => "#{link.thread_url}"} #{h(link.title)}
-            %div.entry-content
-              %p
-                %a{:href => "/img/#{File.basename(link.image_url)}", :target => "_blank", :rel => "bookmark"}
-                  %img{:src => "/img/thumbnail/thumbnail_#{File.basename(link.image_url)}"}
-            %div.entry-meta
-              %ul
-                %li
-                  %a{:href => "#{link.image_url}"} #{link.image_url}
-                %li
-                  %a{:href => "/#{link.tv}", :rel => "tag"} [#{link.tv}]
-                %li.author.vcard{:style => "display:none"}
-                  %span.nickname.fn me
-                %li.published
-                  %abbr.updated{:title => "#{link.created_at.iso8601}"} #{link.created_at}
-      %p.pager
-        - if @prev
-          %a{:href => "/tv/#{@tv}/#{@prev}", :rel => 'prev'}prev
-          &nbsp;|
-        - if @next
-          %a{:href => "/tv/#{@tv}/#{@next}", :rel => 'next'}next
