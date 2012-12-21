@@ -42,7 +42,7 @@ before '/tv/:tv' do
 end
 
 get '/:page' do
-  pass if params[:page] =~ /^\d+/ || get_cookie
+  redirect '/' unless params[:page] =~ /^\d+/ || request.cookies['s'].nil?
   @page  = Page.new(params[:page].to_i, Link.count)
   origination = get_cookie
   from = origination.to_i - ((@page.current - 1) * Page::COUNT_OF_ENTRIES)
@@ -111,16 +111,22 @@ __END__
     %title #{@title}
     %meta{:charset => 'utf-8'}
     %base{:href => "#{@base_url}"}
+    %link{:href => "/css/bootstrap.css", :rel => "stylesheet", :type => "text/css"}
     %link{:href => "/css/common.css", :rel => "stylesheet", :type => "text/css"}
+    %script{:src => "/js/jquery-1.8.3.js" }
+    %script{:src => "/js/bootstrap.js" }
+    %script{:src => "/js/infinite.js" }
     %link{:rel => "alternate", :type => "application/rss+xml", :title => "RSS", :href => "rss"}
   %body
     %div.container
       %h1
         %a{:href => '/'} #{@title}
-      %ul.categories
-        - @categories.each do |cat|
-          %li.tv
-            %a{:href => "/tv/#{h(cat.tv)}"} #{h(cat.tv)}
+      %div.navbar
+        %div.navbar-inner
+          %ul.categories.nav
+            - @categories.each do |cat|
+              %li.tv
+                %a{:href => "/tv/#{h(cat.tv)}"} #{h(cat.tv)}
       %p #{@page.current} page
       %div.hfeed
         - @links.each do |link|
@@ -140,7 +146,8 @@ __END__
                   id:
                   %a{:href => "/id/#{h(link.id)}"} #{h(link.id)}
                 %li
-                  %a{:href => "/tv/#{link.tv}", :rel => "tag"} [#{link.tv}]
+                  %a{:href => "/tv/#{link.tv}", :rel => "tag"}
+                    %span.label.label-info #{link.tv}
                 %li.author.vcard{:style => "display:none"}
                   %span.nickname.fn me
                 %li.published
