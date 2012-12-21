@@ -1,6 +1,3 @@
-div.container {
-    margin-left: 2em;
-}
 ul.categories {
     margin-left: 0;
     padding-left: 0;
@@ -9,3 +6,15 @@ ul.categories li {
     display: inline;
     margin-right: 5px;
 }
+.hfeed {
+}
+.hentry {
+}
+.active {
+    background-color: #ddd;
+}
+.pinned {
+    background-color: #d99;
+    border: 4px solid #fff;
+}
+
