@@ -4,6 +4,18 @@ require 'logger'
 require 'yaml'
 require 'uri'
 
+module ActiveRecord
+  class Base
+    class << self
+      alias :old_connection :connection
+      def connection
+        self.verify_active_connections!
+        old_connection
+      end
+    end
+  end
+end
+
 if ENV['DATABASE_URL']
   db = URI.parse(ENV['DATABASE_URL'])
   ActiveRecord::Base.establish_connection(
